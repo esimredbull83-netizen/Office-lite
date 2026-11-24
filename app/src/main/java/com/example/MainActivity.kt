@@ -23,6 +23,8 @@ import androidx.navigation.navArgument
 import com.example.data.OfficeFileType
 import com.example.ui.doc.DocEditorScreen
 import com.example.ui.doc.DocEditorViewModel
+import com.example.ui.drive.CloudBackupSettingsScreen
+import com.example.ui.drive.CloudBackupSettingsViewModel
 import com.example.ui.home.HomeScreen
 import com.example.ui.home.HomeViewModel
 import com.example.ui.pdf.PdfViewerScreen
@@ -35,6 +37,7 @@ const val ROUTE_HOME = "home"
 const val ROUTE_DOC = "doc/{fileId}"
 const val ROUTE_SHEET = "sheet/{fileId}"
 const val ROUTE_PDF = "pdf/{fileId}"
+const val ROUTE_CLOUD_BACKUP = "cloud_backup"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,6 +84,9 @@ class MainActivity : ComponentActivity() {
                                     OfficeFileType.SHEET -> navController.navigate("sheet/${file.id}")
                                     OfficeFileType.PDF -> navController.navigate("pdf/${file.id}")
                                 }
+                            },
+                            onOpenCloudSettings = {
+                                navController.navigate(ROUTE_CLOUD_BACKUP)
                             }
                         )
                     }
@@ -124,6 +130,21 @@ class MainActivity : ComponentActivity() {
                         PdfViewerScreen(
                             viewModel = vm,
                             onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(ROUTE_CLOUD_BACKUP) {
+                        val vm: CloudBackupSettingsViewModel = viewModel()
+                        CloudBackupSettingsScreen(
+                            viewModel = vm,
+                            onNavigateBack = { navController.popBackStack() },
+                            onOpenRestoredFile = { file ->
+                                when (file.fileType) {
+                                    OfficeFileType.DOC -> navController.navigate("doc/${file.id}")
+                                    OfficeFileType.SHEET -> navController.navigate("sheet/${file.id}")
+                                    OfficeFileType.PDF -> navController.navigate("pdf/${file.id}")
+                                }
+                            }
                         )
                     }
                 }

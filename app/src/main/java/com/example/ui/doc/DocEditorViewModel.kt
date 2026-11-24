@@ -49,7 +49,8 @@ data class DocEditorUiState(
     val matchCase: Boolean = false,
     val matchRanges: List<IntRange> = emptyList(),
     val activeMatchIndex: Int = -1,
-    val isBackingUp: Boolean = false
+    val isBackingUp: Boolean = false,
+    val isExportingPdf: Boolean = false
 )
 
 class DocEditorViewModel(
@@ -340,6 +341,38 @@ class DocEditorViewModel(
         }
     }
 
+    fun exportToPdfUri(destUri: Uri) {
+        viewModelScope.launch {
+            flushSaveNow()
+            _uiState.update { it.copy(isExportingPdf = true) }
+            val state = _uiState.value
+            repository.exportDocumentAsPdf(state.title, state.textFieldValue.text, destUri)
+                .onSuccess { pages ->
+                    _toastMessage.emit("Exported PDF ($pages page${if (pages == 1) "" else "s"})")
+                }
+                .onFailure { err ->
+                    _toastMessage.emit(err.message ?: "PDF export failed")
+                }
+            _uiState.update { it.copy(isExportingPdf = false) }
+        }
+    }
+
+    fun savePdfToWorkspace() {
+        viewModelScope.launch {
+            flushSaveNow()
+            _uiState.update { it.copy(isExportingPdf = true) }
+            val state = _uiState.value
+            repository.saveGeneratedPdfToWorkspace(state.title, state.textFieldValue.text)
+                .onSuccess { pdfEntity ->
+                    _toastMessage.emit("Saved \"${pdfEntity.title}\" to workspace")
+                }
+                .onFailure { err ->
+                    _toastMessage.emit(err.message ?: "Could not generate PDF")
+                }
+            _uiState.update { it.copy(isExportingPdf = false) }
+        }
+    }
+
     private fun scheduleAutoSave() {
         autoSaveJob?.cancel()
         autoSaveJob = viewModelScope.launch {
@@ -353,6 +386,7 @@ class DocEditorViewModel(
         _uiState.update { it.copy(saveStatus = SaveStatus.SAVING) }
         repository.saveTextContent(fileId, _uiState.value.textFieldValue.text)
         _uiState.update { it.copy(saveStatus = SaveStatus.SAVED) }
+        driveCoordinator.launchAutoSyncIfEnabled(fileId)
     }
 
     fun saveAndNotify() {

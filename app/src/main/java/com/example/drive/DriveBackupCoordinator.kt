@@ -4,12 +4,25 @@ import android.content.Context
 import com.example.data.OfficeFileEntity
 import com.example.data.OfficeFileType
 import com.example.data.WorkspaceRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class DriveBackupCoordinator(
     private val repository: WorkspaceRepository,
     private val driveClient: GoogleDriveClient = GoogleDriveClient(),
     val authManager: DriveAuthManager = DriveAuthManager.getInstance()
 ) {
+    private val autoSyncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    fun launchAutoSyncIfEnabled(fileId: String) {
+        if (!repository.autoSyncEnabled.value) return
+        val token = authManager.accessToken.value ?: return
+        autoSyncScope.launch {
+            backupSingleFile(token, fileId)
+        }
+    }
 
     suspend fun refreshSessionAndList(token: String): Result<Pair<DriveUserInfo?, List<DriveBackupFile>>> {
         return runCatching {
@@ -42,6 +55,7 @@ class DriveBackupCoordinator(
                 fileType = entity.fileType,
                 content = content
             )
+            repository.recordFileBackup(entity.id, System.currentTimeMillis())
             uploaded
         }.recoverCatching { err ->
             if (err is DriveUnauthorizedException) authManager.invalidateTokenOnly()
@@ -70,6 +84,7 @@ class DriveBackupCoordinator(
                     fileType = entity.fileType,
                     content = content
                 )
+                repository.recordFileBackup(entity.id, System.currentTimeMillis())
                 uploadedCount++
             }
             onProgress(eligible.size, eligible.size, "")
@@ -83,12 +98,14 @@ class DriveBackupCoordinator(
     suspend fun restoreBackup(token: String, backup: DriveBackupFile): Result<OfficeFileEntity> {
         return runCatching {
             val content = driveClient.downloadTextContent(token, backup.driveFileId)
-            repository.restoreFromDriveBackup(
+            val restored = repository.restoreFromDriveBackup(
                 preferredId = backup.liteOfficeId,
                 title = backup.name,
                 fileType = backup.fileType,
                 content = content
             )
+            repository.recordFileBackup(restored.id, restored.lastBackedUpAt)
+            restored
         }.recoverCatching { err ->
             if (err is DriveUnauthorizedException) authManager.invalidateTokenOnly()
             throw err

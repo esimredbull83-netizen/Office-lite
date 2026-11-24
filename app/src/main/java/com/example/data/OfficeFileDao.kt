@@ -23,6 +23,9 @@ interface OfficeFileDao {
     @Query("UPDATE office_files SET title = :newTitle, updatedAt = :updatedAt WHERE id = :id")
     suspend fun renameFile(id: String, newTitle: String, updatedAt: Long)
 
+    @Query("UPDATE office_files SET lastBackedUpAt = :timestamp WHERE id = :id")
+    suspend fun updateLastBackedUpAt(id: String, timestamp: Long)
+
     @Query("DELETE FROM office_files WHERE id = :id")
     suspend fun deleteFileById(id: String)
 }

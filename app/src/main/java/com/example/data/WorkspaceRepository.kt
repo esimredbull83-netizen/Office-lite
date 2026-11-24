@@ -5,6 +5,7 @@ import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
+import com.example.domain.DocumentPdfExporter
 import com.example.domain.SpreadsheetEngine
 import java.io.File
 import java.util.UUID
@@ -24,6 +25,12 @@ class WorkspaceRepository(context: Context) {
     private val _isDarkTheme = MutableStateFlow(prefs.getBoolean(KEY_DARK_THEME, false))
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
 
+    private val _autoSyncEnabled = MutableStateFlow(prefs.getBoolean(KEY_AUTO_SYNC, false))
+    val autoSyncEnabled: StateFlow<Boolean> = _autoSyncEnabled.asStateFlow()
+
+    private val _lastBackupAt = MutableStateFlow(prefs.getLong(KEY_LAST_BACKUP_AT, 0L))
+    val lastBackupAt: StateFlow<Long> = _lastBackupAt.asStateFlow()
+
     val recentFiles: Flow<List<OfficeFileEntity>> = dao.observeAllFiles()
 
     fun toggleTheme() {
@@ -31,6 +38,20 @@ class WorkspaceRepository(context: Context) {
         _isDarkTheme.value = next
         prefs.edit().putBoolean(KEY_DARK_THEME, next).apply()
     }
+
+    fun setAutoSyncEnabled(enabled: Boolean) {
+        _autoSyncEnabled.value = enabled
+        prefs.edit().putBoolean(KEY_AUTO_SYNC, enabled).apply()
+    }
+
+    suspend fun recordFileBackup(fileId: String, timestamp: Long = System.currentTimeMillis()) =
+        withContext(Dispatchers.IO) {
+            dao.updateLastBackedUpAt(fileId, timestamp)
+            if (timestamp > _lastBackupAt.value) {
+                _lastBackupAt.value = timestamp
+                prefs.edit().putLong(KEY_LAST_BACKUP_AT, timestamp).apply()
+            }
+        }
 
     fun getLocalFile(localFilename: String): File = File(workspaceDir, localFilename)
 
@@ -192,6 +213,45 @@ class WorkspaceRepository(context: Context) {
         }
     }
 
+    suspend fun exportDocumentAsPdf(
+        title: String,
+        content: String,
+        destUri: Uri
+    ): Result<Int> = withContext(Dispatchers.IO) {
+        runCatching {
+            appContext.contentResolver.openOutputStream(destUri)?.use { output ->
+                DocumentPdfExporter.exportToPdf(title, content, output)
+            } ?: error("Cannot open PDF export destination")
+        }
+    }
+
+    suspend fun saveGeneratedPdfToWorkspace(
+        title: String,
+        content: String
+    ): Result<OfficeFileEntity> = withContext(Dispatchers.IO) {
+        runCatching {
+            val id = UUID.randomUUID().toString()
+            val localFilename = "$id.pdf"
+            val destFile = getLocalFile(localFilename)
+            val pages = destFile.outputStream().use { output ->
+                DocumentPdfExporter.exportToPdf(title, content, output)
+            }
+            val baseName = title.substringBeforeLast('.').ifBlank { "Document" }
+            val pdfTitle = "$baseName.pdf"
+            val entity = OfficeFileEntity(
+                id = id,
+                title = pdfTitle,
+                type = OfficeFileType.PDF.name,
+                localFilename = localFilename,
+                previewSnippet = "$pages page${if (pages == 1) "" else "s"} · PDF",
+                sizeBytes = destFile.length(),
+                updatedAt = System.currentTimeMillis()
+            )
+            dao.upsertFile(entity)
+            entity
+        }
+    }
+
     suspend fun readCsvFromUri(uri: Uri): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
             appContext.contentResolver.openInputStream(uri)?.use { stream ->
@@ -248,6 +308,7 @@ class WorkspaceRepository(context: Context) {
             OfficeFileType.PDF -> "PDF Document"
         }
 
+        val now = System.currentTimeMillis()
         val entity = OfficeFileEntity(
             id = targetId,
             title = cleanTitle,
@@ -255,7 +316,8 @@ class WorkspaceRepository(context: Context) {
             localFilename = localFilename,
             previewSnippet = preview,
             sizeBytes = destFile.length(),
-            updatedAt = System.currentTimeMillis()
+            updatedAt = now,
+            lastBackedUpAt = now
         )
         dao.upsertFile(entity)
         entity
@@ -295,6 +357,8 @@ class WorkspaceRepository(context: Context) {
 
     companion object {
         private const val KEY_DARK_THEME = "dark_theme"
+        private const val KEY_AUTO_SYNC = "auto_sync_enabled"
+        private const val KEY_LAST_BACKUP_AT = "last_backup_at"
 
         @Volatile
         private var instance: WorkspaceRepository? = null

@@ -11,7 +11,8 @@ data class OfficeFileEntity(
     val localFilename: String,
     val previewSnippet: String,
     val sizeBytes: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val lastBackedUpAt: Long = 0L
 ) {
     val fileType: OfficeFileType
         get() = runCatching { OfficeFileType.valueOf(type) }.getOrDefault(OfficeFileType.DOC)

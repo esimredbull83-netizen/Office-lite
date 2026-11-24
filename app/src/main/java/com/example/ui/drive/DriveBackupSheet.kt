@@ -31,6 +31,7 @@ import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -74,7 +75,8 @@ fun DriveBackupSheet(
     viewModel: DriveBackupViewModel,
     onDismiss: () -> Unit,
     onShowSnackbar: (String) -> Unit,
-    onOpenRestoredFile: (OfficeFileEntity) -> Unit
+    onOpenRestoredFile: (OfficeFileEntity) -> Unit,
+    onOpenSettings: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -131,13 +133,26 @@ fun DriveBackupSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                if (state.isConnected) {
-                    IconButton(
-                        onClick = { viewModel.refreshBackups(context) },
-                        enabled = !state.isBusy,
-                        modifier = Modifier.testTag("drive_refresh_button")
-                    ) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = "Refresh Drive list")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (state.isConnected) {
+                        IconButton(
+                            onClick = { viewModel.refreshBackups(context) },
+                            enabled = !state.isBusy,
+                            modifier = Modifier.testTag("drive_refresh_button")
+                        ) {
+                            Icon(Icons.Rounded.Refresh, contentDescription = "Refresh Drive list")
+                        }
+                    }
+                    if (onOpenSettings != null) {
+                        IconButton(
+                            onClick = onOpenSettings,
+                            modifier = Modifier.testTag("drive_sheet_settings_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Settings,
+                                contentDescription = stringResource(R.string.cloud_backup_settings_title)
+                            )
+                        }
                     }
                 }
             }

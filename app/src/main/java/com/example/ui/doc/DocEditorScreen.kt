@@ -33,6 +33,9 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.automirrored.rounded.Redo
 import androidx.compose.material.icons.automirrored.rounded.Undo
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.SaveAs
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.Edit
@@ -49,6 +52,8 @@ import androidx.compose.material.icons.rounded.Title
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -98,6 +103,7 @@ fun DocEditorScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showRenameDialog by remember { mutableStateOf(false) }
+    var showExportMenu by remember { mutableStateOf(false) }
 
     val driveConsentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -105,10 +111,16 @@ fun DocEditorScreen(
         viewModel.onDriveConsentResult(context, result.data)
     }
 
-    val exportLauncher = rememberLauncherForActivityResult(
+    val exportMarkdownLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/markdown")
     ) { uri ->
         if (uri != null) viewModel.exportToUri(uri)
+    }
+
+    val exportPdfLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri ->
+        if (uri != null) viewModel.exportToPdfUri(uri)
     }
 
     val handleExit: () -> Unit = {
@@ -231,11 +243,58 @@ fun DocEditorScreen(
                             Icon(Icons.Rounded.CloudUpload, contentDescription = "Back up to Drive")
                         }
                     }
-                    IconButton(
-                        onClick = { exportLauncher.launch(state.title) },
-                        modifier = Modifier.testTag("doc_export_button")
-                    ) {
-                        Icon(Icons.Rounded.FileDownload, contentDescription = "Export document")
+                    Box {
+                        IconButton(
+                            onClick = { showExportMenu = true },
+                            enabled = !state.isExportingPdf,
+                            modifier = Modifier.testTag("doc_export_button")
+                        ) {
+                            if (state.isExportingPdf) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Rounded.FileDownload, contentDescription = "Export document")
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = showExportMenu,
+                            onDismissRequest = { showExportMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Export as PDF (.pdf)") },
+                                leadingIcon = {
+                                    Icon(Icons.Outlined.PictureAsPdf, contentDescription = null)
+                                },
+                                modifier = Modifier.testTag("doc_export_pdf_item"),
+                                onClick = {
+                                    showExportMenu = false
+                                    val pdfName = state.title.substringBeforeLast('.').ifBlank { "Document" } + ".pdf"
+                                    exportPdfLauncher.launch(pdfName)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Save PDF to Workspace") },
+                                leadingIcon = {
+                                    Icon(Icons.Outlined.SaveAs, contentDescription = null)
+                                },
+                                modifier = Modifier.testTag("doc_save_pdf_workspace_item"),
+                                onClick = {
+                                    showExportMenu = false
+                                    viewModel.savePdfToWorkspace()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Export as Markdown / Text") },
+                                leadingIcon = {
+                                    Icon(Icons.Outlined.Description, contentDescription = null)
+                                },
+                                modifier = Modifier.testTag("doc_export_md_item"),
+                                onClick = {
+                                    showExportMenu = false
+                                    exportMarkdownLauncher.launch(state.title)
+                                }
+                            )
+                        }
                     }
                 }
             )

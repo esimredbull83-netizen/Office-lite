@@ -376,6 +376,7 @@ class SheetEditorViewModel(
         val preview = "${finalGrid.size} rows × ${finalGrid.firstOrNull()?.size ?: 0} cols"
         repository.saveTextContent(fileId, csv, customPreview = preview)
         _uiState.update { it.copy(saveStatus = SaveStatus.SAVED) }
+        driveCoordinator.launchAutoSyncIfEnabled(fileId)
     }
 
     override fun onCleared() {

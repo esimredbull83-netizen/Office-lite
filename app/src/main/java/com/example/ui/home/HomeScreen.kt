@@ -45,6 +45,7 @@ import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -97,7 +98,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onOpenFile: (OfficeFileEntity) -> Unit
+    onOpenFile: (OfficeFileEntity) -> Unit,
+    onOpenCloudSettings: () -> Unit
 ) {
     val files by viewModel.filteredFiles.collectAsStateWithLifecycle()
     val totalCount by viewModel.allFilesCount.collectAsStateWithLifecycle()
@@ -176,6 +178,7 @@ fun HomeScreen(
                             isDarkTheme = isDarkTheme,
                             isDriveConnected = isDriveConnected,
                             onOpenDriveBackup = { showDriveSheet = true },
+                            onOpenCloudSettings = onOpenCloudSettings,
                             onToggleTheme = { viewModel.toggleTheme() }
                         )
                     }
@@ -382,7 +385,11 @@ fun HomeScreen(
             onShowSnackbar = { msg ->
                 scope.launch { snackbarHostState.showSnackbar(msg) }
             },
-            onOpenRestoredFile = onOpenFile
+            onOpenRestoredFile = onOpenFile,
+            onOpenSettings = {
+                showDriveSheet = false
+                onOpenCloudSettings()
+            }
         )
     }
 }
@@ -392,6 +399,7 @@ private fun HomeHeader(
     isDarkTheme: Boolean,
     isDriveConnected: Boolean,
     onOpenDriveBackup: () -> Unit,
+    onOpenCloudSettings: () -> Unit,
     onToggleTheme: () -> Unit
 ) {
     Row(
@@ -434,6 +442,25 @@ private fun HomeHeader(
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         }
+                    )
+                }
+            }
+
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                IconButton(
+                    onClick = onOpenCloudSettings,
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .testTag("cloud_backup_settings_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = stringResource(R.string.cloud_backup_settings_title),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

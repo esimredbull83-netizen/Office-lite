@@ -26,4 +26,9 @@
     <string name="drive_backup_action">Back up to Drive</string>
     <string name="drive_backup_all">Back Up All</string>
     <string name="drive_restore_action">Restore</string>
+    <string name="cloud_backup_settings_title">Cloud Backup</string>
+    <string name="cloud_backup_settings_subtitle">Auto-sync &amp; backup timestamps</string>
+    <string name="auto_sync_title">Auto-sync Docs &amp; Sheets</string>
+    <string name="auto_sync_description">Automatically back up edits to Google Drive after saving locally while connected.</string>
+    <string name="last_backup_label">Last Backup</string>
 </resources>
