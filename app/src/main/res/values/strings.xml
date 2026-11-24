@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">Lite Office</string>
+    <string name="hub_subtitle">Offline-first workspace</string>
+    <string name="action_new_doc">New Doc</string>
+    <string name="action_new_sheet">New Sheet</string>
+    <string name="action_open_file">Open File</string>
+    <string name="search_placeholder">Search recent files…</string>
+    <string name="recent_files_header">Recent Files</string>
+    <string name="empty_title">Your workspace is ready</string>
+    <string name="empty_subtitle">Create a new document or spreadsheet, or open a local .txt, .md, .csv, or .pdf file.</string>
+    <string name="no_results_title">No matching files</string>
+    <string name="no_results_subtitle">Try a different search term or filter.</string>
+    <string name="rename_dialog_title">Rename file</string>
+    <string name="delete_dialog_title">Delete file?</string>
+    <string name="delete_dialog_message">This removes the local copy from Lite Office. External files on your device remain untouched.</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_save">Save</string>
+    <string name="action_export">Export</string>
+    <string name="find_placeholder">Find…</string>
+    <string name="replace_placeholder">Replace with…</string>
+    <string name="drive_backup_title">Google Drive Backup</string>
+    <string name="drive_connect">Connect Google Drive</string>
+    <string name="drive_disconnect">Disconnect</string>
+    <string name="drive_backup_action">Back up to Drive</string>
+    <string name="drive_backup_all">Back Up All</string>
+    <string name="drive_restore_action">Restore</string>
+</resources>

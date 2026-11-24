@@ -1,0 +1,6 @@
+{
+  "name": "Lite Office",
+  "description": "Fast, lightweight, offline-first office suite for documents, spreadsheets, and local PDF viewing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
